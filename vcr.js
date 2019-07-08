@@ -95,14 +95,15 @@ function save (filepath, requestData, resp) {
   }
   ensureDirExists(filepath)
   const toSave = { request: requestData, response }
-  log('Saving request to ', filepath)
+  log(`Saving request to ${filepath}`)
   fs.writeFileSync(filepath, JSON.stringify(toSave, null, 2))
 }
 
 function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', requestData, dataFilter4FileHash) {
   urlPath.startsWith('/') && (urlPath = urlPath.substring(1))
   remoteUrl.endsWith('/') && (remoteUrl = remoteUrl.substring(0, remoteUrl.length - 1))
-  let dir = path.join(recordingsDir, remoteUrl.replace('https://', '').replace('http://', '').replace('/', '-').replace(':', '-'), urlPath.replace('/', '-'), requestData.method)
+  const remoteUrlArr = remoteUrl.replace('https://', '').replace('http://', '').replace(':', '-').split('/')
+  let dir = path.join(recordingsDir, ...remoteUrlArr, ...urlPath.split('/'), requestData.method)
   dir = dir.substring(0, dir.indexOf('?') === -1 ? dir.length : dir.indexOf('?'))
   return path.join(dir, hashOnData(requestData.data, dataFilter4FileHash) + '.json')
 }
