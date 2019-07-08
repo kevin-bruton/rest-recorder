@@ -15,7 +15,7 @@ This module, by default, looks for the configuration file in the root of the pac
 Defaults:
   - mode: 'cache'
   - remoteUrl: 'http://localhost:5000'
-  - restRecorderPort: '5555'
+  - restRecorderPort: '5500'
   - recordingsDir: 'rest-recordings'
 
 ### Command line options
@@ -39,3 +39,24 @@ The config file exports an object with the following properties:
 - uniqueRecordingOn: A function defined in the user's configuration file that returns what should be used to calculate unique data
   - There may be cases where we cant the same response for similar, but different requests. For these cases, being able to define this function comes in handy.
   - The function with be called with one paramter which will be an object with the following properties: url, headers, params, data
+
+### Getting started
+
+To install:
+
+`npm install -D rest-recorder`
+
+And then from your project, you can prepare a config file. The default location for this file is in the root directory of the project and the default name is `rest-recorder.config.js`.
+
+A config file could look something like this:
+```
+module.exports = {
+  remoteUrl: 'https://reqres.in',
+  restRecorderPort: '5500',
+  restRecordingsDir: 'rest-recordings',
+  mode: CACHE,
+  uniqueRecordingOn: request => request,
+  log: true
+}
+```
+However, you can include only the options you want to specify. For the rest, the defaults will be used.
