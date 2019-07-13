@@ -105,7 +105,7 @@ function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', requestD
   const remoteUrlArr = remoteUrl.replace('https://', '').replace('http://', '').replace(':', '-').split('/')
   let dir = path.join(recordingsDir, ...remoteUrlArr, ...urlPath.split('/'), requestData.method)
   dir = dir.substring(0, dir.indexOf('?') === -1 ? dir.length : dir.indexOf('?'))
-  return path.join(dir, hashOnData(requestData.data, dataFilter4FileHash) + '.json')
+  return path.join(dir, hashOnData({url: remoteUrl, headers: requestData.headers, params: urlPath, data: requestData.data}, dataFilter4FileHash) + '.json')
 }
 
 function hashOnData (data, dataFilter4FileHash) {
