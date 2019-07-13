@@ -1,6 +1,13 @@
 # Rest Recorder
 
-This module is for recording and playing back REST API calls
+This module is for recording and playing back REST API calls.
+
+Many have found this module handy for several use cases:
+- It is can be used as a mock server for tests, where the responses are recorded from real requests and later used in the "playback" mode.
+- The recordings can also be used to speed up development, as the recorded responses will be a lot quicker and many times a lot more stable than having to depend on a remote server.
+- The recordings are saved as readable json files, so you can edit or write the responses yourself without having to wait on changes in the remote server.
+- You can also specify when similar, but not identical requests should return the same recorded response (by defining the "uniqueRecordingOn" option as a function).
+
 It is an express server that listens to requests and has three modes:
 
 RECORD: it receives the request, copies it, and makes the same request to a remote server. When it receives the response from the remote server, it saves the request and the response in the `recordings` folder, and then sends back the response to the original caller.
@@ -37,8 +44,9 @@ The config file exports an object with the following properties:
 - recordingsDir: The directory where the recordings will be saved
 
 - uniqueRecordingOn: A function defined in the user's configuration file that returns what should be used to calculate unique data
-  - There may be cases where we cant the same response for similar, but different requests. For these cases, being able to define this function comes in handy.
-  - The function with be called with one paramter which will be an object with the following properties: url, headers, params, data
+  - There may be cases where you want the same response for similar, but different requests. For these cases, being able to define this function comes in handy.
+  - The function will be called with one paramter which will be an object with the following properties: url, headers, params, data
+  - This function should return an object that will be used to calculate the unique hash code for the request. This hash code will be identifier and file name of the recording.
 
 ### Getting started
 
@@ -54,7 +62,7 @@ module.exports = {
   remoteUrl: 'https://reqres.in',
   restRecorderPort: '5500',
   restRecordingsDir: 'rest-recordings',
-  mode: CACHE,
+  mode: 'cache',
   uniqueRecordingOn: request => request,
   log: true
 }
