@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "Tool to record, playback and cache API REST requests",
   "main": "index.js",
-  "repository": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kevin-bruton/rest-recorder"
+  },
   "scripts": {
     "start": "index",
     "test": "jest --verbose --runInBand"
@@ -19,6 +22,7 @@
     "rest",
     "replay"
   ],
+  "homepage": "https://github.com/kevin-bruton/rest-recorder/blob/master/README.md",
   "bin": {
     "rest-recorder": "./index.js"
   },
