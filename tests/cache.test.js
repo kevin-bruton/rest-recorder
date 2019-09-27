@@ -10,16 +10,17 @@ const config = require('./testConfig.js')
 
 describe('Making a request in CACHE MODE', () => {
   const configFilePath = path.join(__dirname, './testConfig.js')
+  console.log(configFilePath)
   let restRecorderProcess
   let realResponse
   beforeAll(async () => {
     rimraf.sync(config.restRecordingsDir)
-    restRecorderProcess = fork(path.join(__dirname, '..', '/index'), [`--configFile="${configFilePath}"`, '--mode=cache'])
+    // restRecorderProcess = fork(path.join(__dirname, '..', '/index'), [`--configFile="${configFilePath}"`, '--mode=cache'])
     realResponse = await axios.get(config.remoteUrl)
   })
   describe('When there is NO previous corresponding recording', () => {
     it('returns the data from the remote', async () => {
-      const resp = await axios.get('http://localhost:5555')
+      const resp = await axios.get('http://localhost:5555/api/users/2')
       expect(resp.data).toStrictEqual(realResponse.data)
     })
     it('saves the request and response in file', () => {
@@ -32,7 +33,7 @@ describe('Making a request in CACHE MODE', () => {
   })
   describe('When there IS a previous corresponding recording', () => {
     it('returns the response previously saved to file', async () => {
-      const resp = await axios.get('http://localhost:5555')
+      const resp = await axios.get('http://localhost:5555/api/users/2')
       const getRecordingFilePath = vcr.__get__('getRecordingFilePath')
       const filepath = getRecordingFilePath(config.restRecordingsDir, config.remoteUrl, '/', { method: 'GET', data: {} }, data => data)
       const recording = JSON.parse(fs.readFileSync(filepath, 'utf8'))
@@ -40,7 +41,7 @@ describe('Making a request in CACHE MODE', () => {
     })
   })
   afterAll(() => {
-    restRecorderProcess.kill()
+    // restRecorderProcess.kill()
     rimraf.sync(config.restRecordingsDir)
   })
 })
