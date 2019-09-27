@@ -50,7 +50,7 @@ The config file exports an object with the following properties:
 
 ### Getting started
 
-To install:
+To install as a development dependency in your project:
 
 `npm install -D rest-recorder`
 
@@ -68,3 +68,6 @@ module.exports = {
 }
 ```
 However, you can include only the options you want to specify. For the rest, the defaults will be used.
+
+If you have installed it as a development dependency in your project you can start the recorder with the following command:
+`npx rest-recorder`
