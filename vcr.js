@@ -76,8 +76,7 @@ async function makeRequest (requestData) {
 }
 
 function getRequestHeaders (req) {
-  const headersTitles = ['Content-Type', 'Authorization']
-  return headersTitles.reduce((headers, title) => {
+  return Object.keys(req.headers).reduce((headers, title) => {
     req.get(title) && (headers[title] = req.get(title))
     return headers
   }, {})

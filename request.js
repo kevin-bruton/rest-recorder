@@ -1,7 +1,13 @@
 const axios = require('axios')
+const { log } = require('./logger')
 
 module.exports = async function (config) {
   const { method, url, headers, data } = config
+  log('\nMAKING A REAL request:')
+  log('URL:', url)
+  log('method:', method)
+  log('headers:', headers)
+  log('data:', data)
   try {
     const resp = await axios({ method, url, headers, data })
     return resp
