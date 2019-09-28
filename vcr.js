@@ -1,4 +1,4 @@
-const request = require('./request')
+const makeRequest = require('./request')
 const path = require('path')
 const hash = require('object-hash')
 const fs = require('fs')
@@ -9,47 +9,39 @@ module.exports = config => {
   return async function (req, res, next) {
     const stripEndingForwardSlash = url => {
       url.endsWith('/') && (url = url.substring(0, url.length - 1))
-      url.endsWith('/') && (url = url.substring(0, url.length - 1))
       return url
     }
     const requestData = {
       method: req.method,
       headers: getRequestHeaders(req),
       data: req.body,
-      url: stripEndingForwardSlash(config.remoteUrl + req.originalUrl)
+      url: stripEndingForwardSlash(config.remoteUrl) + req.originalUrl
     }
 
     const filepath = getRecordingFilePath(config.restRecordingsDir, config.remoteUrl, req.originalUrl, requestData, config.uniqueRecordingOn)
 
     if (config.mode === RECORD) {
-      log(`${requestData.method} ${requestData.url}: RECORD MODE. REQUESTING...`)
-      await makeAndSaveRequest(filepath, requestData)
-      returnSavedRecording(filepath, res)
+      log(`\n${requestData.method} ${requestData.url}: RECORD MODE. REQUESTING...`)
+      const responseData = await makeRequest(requestData)
+      save(filepath, requestData, responseData)
+      sendResponse(responseData, res)
     } else {
-      if (recordingExists(filepath)) {
-        log(`${requestData.url} ${requestData.method}: ${config.mode} MODE; HIT`)
-        returnSavedRecording(filepath, res)
+      const recording = getRecording(filepath)
+      if (recording) {
+        log(`\n${requestData.url} ${requestData.method}: ${config.mode} MODE; HIT`)
+        sendResponse(recording.response, res)
       } else if (config.mode === PLAYBACK) {
-        log(`${requestData.method} ${requestData.url}: PLAYBACK MODE; NO HIT. RETURNING 404...`)
+        log(`\n${requestData.method} ${requestData.url}: PLAYBACK MODE; NO HIT. RETURNING 404...`)
         res.sendStatus(404)
       } else {
-        log(`${requestData.method} ${requestData.url}: CACHE MODE; NO HIT. REQUESTING...`)
-        await makeAndSaveRequest(filepath, requestData)
-        returnSavedRecording(filepath, res)
+        log(`\n${requestData.method} ${requestData.url}: CACHE MODE; NO HIT. REQUESTING...`)
+        const responseData = await makeRequest(requestData)
+        save(filepath, requestData, responseData)
+        sendResponse(responseData, res)
       }
     }
     next()
   }
-}
-
-async function makeAndSaveRequest (filepath, requestData) {
-  const responseData = await makeRequest(requestData)
-  save(filepath, requestData, responseData)
-}
-
-function returnSavedRecording (filepath, res) {
-  const recording = getRecording(filepath)
-  sendResponse(recording.response, res)
 }
 
 function getRecording (filepath) {
@@ -58,12 +50,8 @@ function getRecording (filepath) {
     return JSON.parse(fileContent)
   } catch (err) {
     log(`Could not read file ${filepath}: ${err}`)
-    return { response: { status: 410, statusText: 'Gone', data: 'Could not get recording' } }
+    return false
   }
-}
-
-function recordingExists (filepath) {
-  return fs.existsSync(filepath)
 }
 
 function sendResponse (response, res) {
@@ -71,19 +59,19 @@ function sendResponse (response, res) {
   res.status(response.status).send(response.data)
 }
 
-async function makeRequest (requestData) {
-  return request(requestData)
-}
-
 function getRequestHeaders (req) {
-  return Object.keys(req.headers).reduce((headers, title) => {
-    req.get(title) && (headers[title] = req.get(title))
+  const headersToExclude = ['host']
+  return Object.keys(req.headers).reduce((headers, headerName) => {
+    const headerVal = req.get(headerName)
+    if (headerVal && !headersToExclude.includes(headerName)) {
+      headers[headerName] = headerVal
+    }
     return headers
   }, {})
 }
 
-function save (filepath, requestData, resp) {
-  const response = { status: resp.status, statusText: resp.statusText, data: resp.data }
+function save (filepath, request, response) {
+  const toSave = { request, response }
   function ensureDirExists (filePath) {
     var dirname = path.dirname(filePath)
     if (fs.existsSync(dirname)) {
@@ -93,21 +81,23 @@ function save (filepath, requestData, resp) {
     fs.mkdirSync(dirname)
   }
   ensureDirExists(filepath)
-  const toSave = { request: requestData, response }
-  log(`Saving request to ${filepath}`)
+  log(`\nSaving request to ${filepath}`)
   fs.writeFileSync(filepath, JSON.stringify(toSave, null, 2))
 }
 
-function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', requestData, dataFilter4FileHash) {
+function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', requestData, uniqueRecordingOn) {
   urlPath.startsWith('/') && (urlPath = urlPath.substring(1))
   remoteUrl.endsWith('/') && (remoteUrl = remoteUrl.substring(0, remoteUrl.length - 1))
   const remoteUrlArr = remoteUrl.replace('https://', '').replace('http://', '').replace(':', '-').split('/')
-  let dir = path.join(recordingsDir, ...remoteUrlArr, ...urlPath.split('/'), requestData.method)
+  const filteredPath = uniqueRecordingOn({ path: urlPath})
+  const path = filteredPath.path.replace('/', '-')
+  let dir = path.join(process.cwd(), recordingsDir, ...remoteUrlArr, requestData.method, ...filteredPath.path.split('/'))
   dir = dir.substring(0, dir.indexOf('?') === -1 ? dir.length : dir.indexOf('?'))
-  return path.join(dir, hashOnData({url: remoteUrl, headers: requestData.headers, params: urlPath, data: requestData.data}, dataFilter4FileHash) + '.json')
+  const filename = hashOnData({url: remoteUrl, headers: requestData.headers, path, data: requestData.data}, uniqueRecordingOn) + '.json'
+  return path.join(dir, filename)
 }
 
-function hashOnData (data, dataFilter4FileHash) {
-  const newData = dataFilter4FileHash(data)
+function hashOnData (data, uniqueRecordingOn) {
+  const newData = uniqueRecordingOn(data)
   return hash(newData)
 }
