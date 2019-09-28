@@ -71,3 +71,5 @@ However, you can include only the options you want to specify. For the rest, the
 
 If you have installed it as a development dependency in your project you can start the recorder with the following command:
 `npx rest-recorder`
+
+Please open an issue if you find one!
