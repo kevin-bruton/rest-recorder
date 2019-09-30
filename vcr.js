@@ -19,14 +19,11 @@ module.exports = config => {
     }
 
     const filepath = getRecordingFilePath(config.restRecordingsDir, config.remoteUrl, req.originalUrl, requestData, config.uniqueRecordingOn)
-    log(`Recording location: ${filepath}`)
 
     if (config.mode === RECORD) {
       log(`\n${requestData.method} ${requestData.url}: RECORD MODE. REQUESTING...`)
       const responseData = await makeRequest(requestData)
-      if (config.dontSaveResponsesWithStatus.includes(responseData.status)) {
-        save(filepath, requestData, responseData)
-      }
+      save(config.dontSaveResponsesWithStatus, filepath, requestData, responseData)
       sendResponse(responseData, res)
     } else {
       const recording = getRecording(filepath)
@@ -39,9 +36,7 @@ module.exports = config => {
       } else {
         log(`\n${requestData.method} ${requestData.url}: CACHE MODE; NO HIT. REQUESTING...`)
         const responseData = await makeRequest(requestData)
-        if (config.dontSaveResponsesWithStatus.includes(responseData.status)) {
-          save(filepath, requestData, responseData)
-        }
+        save(config.dontSaveResponsesWithStatus, filepath, requestData, responseData)
         sendResponse(responseData, res)
       }
     }
@@ -54,7 +49,7 @@ function getRecording (filepath) {
     const fileContent = fs.readFileSync(filepath)
     return JSON.parse(fileContent)
   } catch (err) {
-    log(`Could not read file ${filepath}: ${err}`)
+    log(`Could not read file: ${err}`)
     return false
   }
 }
@@ -74,7 +69,11 @@ function getRequestHeaders (req) {
   }, {})
 }
 
-function save (filepath, request, response) {
+function save (dontSaveResponseStatus, filepath, request, response) {
+  if (dontSaveResponseStatus.includes(response.status)) {
+    log(`Received response with status ${response.status}. Not saving.`)
+    return
+  }
   const toSave = { request, response }
   function ensureDirExists (filePath) {
     var dirname = path.dirname(filePath)
