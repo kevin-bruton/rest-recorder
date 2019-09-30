@@ -23,7 +23,9 @@ module.exports = config => {
     if (config.mode === RECORD) {
       log(`\n${requestData.method} ${requestData.url}: RECORD MODE. REQUESTING...`)
       const responseData = await makeRequest(requestData)
-      save(filepath, requestData, responseData)
+      if (config.dontSaveResponsesWithStatus.includes(responseData.status)) {
+        save(filepath, requestData, responseData)
+      }
       sendResponse(responseData, res)
     } else {
       const recording = getRecording(filepath)
@@ -36,7 +38,9 @@ module.exports = config => {
       } else {
         log(`\n${requestData.method} ${requestData.url}: CACHE MODE; NO HIT. REQUESTING...`)
         const responseData = await makeRequest(requestData)
-        save(filepath, requestData, responseData)
+        if (config.dontSaveResponsesWithStatus.includes(responseData.status)) {
+          save(filepath, requestData, responseData)
+        }
         sendResponse(responseData, res)
       }
     }

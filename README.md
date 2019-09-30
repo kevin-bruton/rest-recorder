@@ -48,6 +48,8 @@ The config file exports an object with the following properties:
   - The function will be called with one paramter which will be an object with the following properties: url, headers, params, data
   - This function should return an object that will be used to calculate the unique hash code for the request. This hash code will be identifier and file name of the recording.
 
+- dontSaveResponsesWithStatus: An array with the status codes that won't be saved as a recording for later use. Default value: [401, 403, 404, 500]
+
 ### Getting started
 
 To install as a development dependency in your project:

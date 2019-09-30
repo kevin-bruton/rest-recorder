@@ -8,5 +8,6 @@ module.exports = {
   mode: CACHE,
   configFile: path.join(process.cwd(), 'rest-recorder.config.js'),
   uniqueRecordingOn: request => request,
+  dontSaveResponsesWithStatus: [401, 403, 404, 500],
   log: true
 }
