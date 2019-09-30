@@ -19,6 +19,7 @@ module.exports = config => {
     }
 
     const filepath = getRecordingFilePath(config.restRecordingsDir, config.remoteUrl, req.originalUrl, requestData, config.uniqueRecordingOn)
+    log(`Recording location: ${filepath}`)
 
     if (config.mode === RECORD) {
       log(`\n${requestData.method} ${requestData.url}: RECORD MODE. REQUESTING...`)
@@ -59,7 +60,6 @@ function getRecording (filepath) {
 }
 
 function sendResponse (response, res) {
-  log(response.status)
   res.status(response.status).send(response.data)
 }
 
@@ -94,10 +94,10 @@ function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', requestD
   remoteUrl.endsWith('/') && (remoteUrl = remoteUrl.substring(0, remoteUrl.length - 1))
   const remoteUrlArr = remoteUrl.replace('https://', '').replace('http://', '').replace(':', '-').split('/')
   const filteredPath = uniqueRecordingOn({ path: urlPath})
-  const path = filteredPath.path.replace('/', '-')
-  let dir = path.join(process.cwd(), recordingsDir, ...remoteUrlArr, requestData.method, ...filteredPath.path.split('/'))
-  dir = dir.substring(0, dir.indexOf('?') === -1 ? dir.length : dir.indexOf('?'))
-  const filename = hashOnData({url: remoteUrl, headers: requestData.headers, path, data: requestData.data}, uniqueRecordingOn) + '.json'
+  let dir = path.join(recordingsDir, ...remoteUrlArr, requestData.method)
+  filteredPath.path && (dir = path.join(dir, ...filteredPath.path.split('/'))) // Add directories for each path segment
+  dir = dir.substring(0, dir.indexOf('?') === -1 ? dir.length : dir.indexOf('?')) // Remove get params if there
+  const filename = hashOnData({url: remoteUrl, headers: requestData.headers, path: filteredPath.path.replace('/', '-'), data: requestData.data}, uniqueRecordingOn) + '.json' // Generate filename
   return path.join(dir, filename)
 }
 
