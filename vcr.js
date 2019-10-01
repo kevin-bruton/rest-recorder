@@ -17,7 +17,7 @@ module.exports = config => {
       data: req.body,
       url: stripEndingForwardSlash(config.remoteUrl) + req.originalUrl
     }
-
+    
     const filepath = getRecordingFilePath(config.restRecordingsDir, config.remoteUrl, req.originalUrl, requestData, config.uniqueRecordingOn)
 
     if (config.mode === RECORD) {
@@ -74,7 +74,9 @@ function save (dontSaveResponseStatus, filepath, request, response) {
     log(`Received response with status ${response.status}. Not saving.`)
     return
   }
-  const toSave = { request, response }
+  const date = new Date();
+  const dateStr = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}:${date.getMilliseconds()}`;
+  const toSave = { recordedOn: dateStr, request, response }
   function ensureDirExists (filePath) {
     var dirname = path.dirname(filePath)
     if (fs.existsSync(dirname)) {
@@ -88,7 +90,8 @@ function save (dontSaveResponseStatus, filepath, request, response) {
   fs.writeFileSync(filepath, JSON.stringify(toSave, null, 2))
 }
 
-function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', requestData, uniqueRecordingOn) {
+function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', origRequestData, uniqueRecordingOn) {
+  const requestData = { method: origRequestData.method, headers: Object.assign({}, origRequestData.headers), data: Object.assign({}, origRequestData.data), url: origRequestData.url }
   urlPath.startsWith('/') && (urlPath = urlPath.substring(1))
   remoteUrl.endsWith('/') && (remoteUrl = remoteUrl.substring(0, remoteUrl.length - 1))
   const remoteUrlArr = remoteUrl.replace('https://', '').replace('http://', '').replace(':', '-').split('/')
