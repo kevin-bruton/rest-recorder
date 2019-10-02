@@ -7,7 +7,8 @@ module.exports = {
   restRecordingsDir: 'rest-recordings',
   mode: CACHE,
   configFile: path.join(process.cwd(), 'rest-recorder.config.js'),
-  uniqueRecordingOn: request => request,
   dontSaveResponsesWithStatus: [401, 403, 404, 500],
+  getRecordingDirectoryArray: request => [request.domain, ...request.pathSegments, request.method],
+  getRecordingFilename: (request, hash) => hash(request.data),
   log: true
 }

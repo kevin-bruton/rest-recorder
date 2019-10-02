@@ -16,11 +16,16 @@ app.use(vcr(config))
 
 log('\nSTARTING REST RECORDER WITH THE FOLLOWING CONFIG:')
 log(JSON.stringify(config, null, 2), '\n')
-log(`uniqueRecordingOn: ${config.uniqueRecordingOn.toString()}\n`)
+log(`getRecordingDirectoryArray: ${config.getRecordingDirectoryArray.toString()}\n`)
+log(`getRecordingFilename: ${config.getRecordingFilename.toString()}\n`)
 
 process.title = 'rest-recorder'
 
 const server = app.listen(config.restRecorderPort,
-  () => console.log(`VCR is running on port ${config.restRecorderPort} in ${config.mode} mode...`))
+  () => {
+    console.log(`================================================================`)
+    console.log(`  REST-RECORDER IS RUNNING ON PORT ${config.restRecorderPort} IN "${config.mode.toUpperCase()}" MODE...`)
+    console.log(`================================================================`)
+  })
 
 module.exports = server

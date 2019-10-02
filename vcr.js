@@ -18,23 +18,23 @@ module.exports = config => {
       url: stripEndingForwardSlash(config.remoteUrl) + req.originalUrl
     }
     
-    const filepath = getRecordingFilePath(config.restRecordingsDir, config.remoteUrl, req.originalUrl, requestData, config.uniqueRecordingOn)
+    const filepath = getRecordingFilePath(config.restRecordingsDir, requestData, config.getRecordingDirectoryArray, config.getRecordingFilename)
 
     if (config.mode === RECORD) {
-      log(`\n${requestData.method} ${requestData.url}: RECORD MODE. REQUESTING...`)
+      log(`\nRECORD MODE. REQUESTING... ${requestData.method} ${requestData.url}`)
       const responseData = await makeRequest(requestData)
       save(config.dontSaveResponsesWithStatus, filepath, requestData, responseData)
       sendResponse(responseData, res)
     } else {
       const recording = getRecording(filepath)
       if (recording) {
-        log(`\n${requestData.url} ${requestData.method}: ${config.mode} MODE; HIT`)
+        log(`${config.mode.toUpperCase()} MODE; HIT. RETURNING RECORDING... ${requestData.method} ${requestData.url}`)
         sendResponse(recording.response, res)
       } else if (config.mode === PLAYBACK) {
-        log(`\n${requestData.method} ${requestData.url}: PLAYBACK MODE; NO HIT. RETURNING 404...`)
+        log(`PLAYBACK MODE; MISS. RETURNING 404... ${requestData.method} ${requestData.url}`)
         res.sendStatus(404)
       } else {
-        log(`\n${requestData.method} ${requestData.url}: CACHE MODE; NO HIT. REQUESTING...`)
+        log(`CACHE MODE; MISS. REQUESTING... ${requestData.method} ${requestData.url}`)
         const responseData = await makeRequest(requestData)
         save(config.dontSaveResponsesWithStatus, filepath, requestData, responseData)
         sendResponse(responseData, res)
@@ -47,9 +47,10 @@ module.exports = config => {
 function getRecording (filepath) {
   try {
     const fileContent = fs.readFileSync(filepath)
+    log(`\nRECORDING FOUND at ${filepath}`)
     return JSON.parse(fileContent)
   } catch (err) {
-    log(`Could not read file: ${err}`)
+    log(`\nRECORDING NOT FOUND at ${filepath}`)
     return false
   }
 }
@@ -86,24 +87,23 @@ function save (dontSaveResponseStatus, filepath, request, response) {
     fs.mkdirSync(dirname)
   }
   ensureDirExists(filepath)
-  log(`\nSaving request to ${filepath}`)
   fs.writeFileSync(filepath, JSON.stringify(toSave, null, 2))
+  log(`REQUEST SAVED`)
 }
 
-function getRecordingFilePath (recordingsDir, remoteUrl, urlPath = '/', origRequestData, uniqueRecordingOn) {
-  const requestData = { method: origRequestData.method, headers: Object.assign({}, origRequestData.headers), data: Object.assign({}, origRequestData.data), url: origRequestData.url }
-  urlPath.startsWith('/') && (urlPath = urlPath.substring(1))
-  remoteUrl.endsWith('/') && (remoteUrl = remoteUrl.substring(0, remoteUrl.length - 1))
-  const remoteUrlArr = remoteUrl.replace('https://', '').replace('http://', '').replace(':', '-').split('/')
-  const filteredPath = uniqueRecordingOn({ path: urlPath})
-  let dir = path.join(recordingsDir, ...remoteUrlArr, requestData.method)
-  filteredPath.path && (dir = path.join(dir, ...filteredPath.path.split('/'))) // Add directories for each path segment
-  dir = dir.substring(0, dir.indexOf('?') === -1 ? dir.length : dir.indexOf('?')) // Remove get params if there
-  const filename = hashOnData({url: remoteUrl, headers: requestData.headers, path: filteredPath.path.replace('/', '-'), data: requestData.data}, uniqueRecordingOn) + '.json' // Generate filename
+function getRecordingFilePath (recordingsDir, origRequestData, getRecordingDirectory, getRecordingFilename) {
+  const request = {}
+  const urlWithoutProtocol = origRequestData.url.replace('https://', '').replace('http://', '')
+  const pathStartIdx = urlWithoutProtocol.indexOf('/')
+  request.domain = urlWithoutProtocol.substring(0, pathStartIdx)
+  const urlPath = urlWithoutProtocol.substring(pathStartIdx + 1)
+  request.pathSegments = (urlPath.endsWith('/') ? urlPath.substring(0, urlPath.length - 1): urlPath).split('/')
+  request.data = {...origRequestData.data}
+  request.headers = {...origRequestData.headers}
+  request.method = origRequestData.method
+  
+  const dirArray = getRecordingDirectory(request)
+  const dir = path.join(recordingsDir, ...dirArray)
+  const filename = getRecordingFilename(request, hash) + '.json'
   return path.join(dir, filename)
-}
-
-function hashOnData (data, uniqueRecordingOn) {
-  const newData = uniqueRecordingOn(data)
-  return hash(newData)
 }
